@@ -43,23 +43,28 @@ impl LcsMap {
         }
     }
 
-    pub fn insert(&mut self, entry: &str) {
+    pub fn insert(&mut self, entry: &str) -> bool {
         let tokenized: LcsSeq = tokenize(entry, self.delimiters.as_slice())
             .map(|token| token.to_string())
             .collect();
 
         let line_id = self.line_id;
 
-        match self.get_match_mut(&tokenized) {
+        let inserted = match self.get_match_mut(&tokenized) {
             None => {
                 let obj = LcsObject::new(tokenized, line_id);
-                self.seq.push(obj);
+                self.seq.push(obj.clone());
+                true
             }
             Some(obj) => {
                 obj.insert(tokenized, line_id);
+                false
             }
-        }
+        };
+
         self.line_id += 1;
+
+        inserted
     }
 
     pub fn get_match(&self, tokenized: &LcsSeq) -> Option<&LcsObject> {
@@ -464,6 +469,59 @@ mod tests {
             }],
             line_id: 1,
             delimiters: vec![' ', ':'],
+        };
+        assert_eq!(map, expected);
+    }
+
+    #[test]
+    fn insert_new_message_type() {
+        let inputs = fixtures_input_var_log_messages_lines();
+        let mut map = LcsMap::new();
+
+        let expected_new_insert = map.insert(inputs[0]);
+        assert_eq!(true, expected_new_insert);
+
+        let expected_no_new_insert = map.insert(inputs[0]);
+        assert_eq!(false, expected_no_new_insert);
+
+        let expected_new_insert = map.insert(inputs[1]);
+        assert_eq!(true, expected_new_insert);
+
+        let expected_new_insert = map.insert(inputs[1]);
+        assert_eq!(false, expected_new_insert);
+
+        let expected = LcsMap {
+            seq: vec![
+                LcsObject {
+                    tokens: [
+                        "Jan", "22", "04:11:04", "combo", "syslogd", "1.4.1:", "restart.",
+                    ]
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect(),
+                    lines_ids: vec![0, 1],
+                },
+                LcsObject {
+                    tokens: [
+                        "Jan",
+                        "22",
+                        "04:11:04",
+                        "combo",
+                        "logrotate:",
+                        "ALERT",
+                        "exited",
+                        "abnormally",
+                        "with",
+                        "[1]",
+                    ]
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect(),
+                    lines_ids: vec![2, 3],
+                },
+            ],
+            line_id: 4,
+            delimiters: vec![' '],
         };
         assert_eq!(map, expected);
     }
