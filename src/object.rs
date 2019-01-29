@@ -1,8 +1,8 @@
 use serde_derive::*;
 
-use crate::{tokenize, LcsSeq, LineId, LcsDelimiters};
+use crate::{tokenize, LcsDelimiters, LcsSeq, LineId};
 
-#[derive(Default, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct LcsObject {
     pub tokens: LcsSeq,
     pub lines_ids: Vec<LineId>,
@@ -10,7 +10,9 @@ pub struct LcsObject {
 
 impl LcsObject {
     pub fn from_str(s: &str, line_id: LineId, delimiters: LcsDelimiters) -> LcsObject {
-        let tokens = tokenize(s, delimiters.as_slice()).map(|s| s.to_string()).collect();
+        let tokens = tokenize(s, delimiters.as_slice())
+            .map(|s| s.to_string())
+            .collect();
         LcsObject::new(tokens, line_id)
     }
 
